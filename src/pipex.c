@@ -66,13 +66,15 @@ void    command_fork(char *cmd, char **envp, int *p_fd)
         error_handler(FORK_ERROR);
     if (pid == 0)
     {
+        close(p_fd[IN]);
         redir_fork(p_fd, STDOUT_FILENO, 1);
         exec(cmd, envp);
         error_handler(EXECVE_ERROR);
     }
     else {
-        redir_fork(p_fd, STDIN_FILENO, 0);
+        close(p_fd[OUT]);
         waitpid(pid, &status, 0);
+        redir_fork(p_fd, STDIN_FILENO, 0);
     }
 }
 
@@ -96,9 +98,9 @@ int main(int ac, char **av, char **envp)
         fd = file_opener(av[1], PERMS_R);
         redir_main(fd, STDIN_FILENO);
     }
-    while (i < ac - 2)
-        command_fork(av[i++], envp, pipe_fd);
     fd = file_opener(av[ac - 1], PERMS_WCT);
     redir_main(fd, STDOUT_FILENO);
+    while (i < ac - 2)
+        command_fork(av[i++], envp, pipe_fd);
     exec(av[ac - 2], envp);
 }
